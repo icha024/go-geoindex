@@ -191,8 +191,9 @@ func SearchBound(latitude, longitude, bound float64) []*GeoData {
 				if geoDataStore[i].GeoHash < neighboursUpperLimit {
 					data := geoDataStore[i]
 					// filter by strict bounding box
-					if data.Latitude >= box[0] && data.Latitude <= box[1] &&
-						data.Longitude >= box[2] && data.Longitude <= box[3] {
+					// filter by strict bounding box
+					if ((data.Latitude >= box[0] && data.Latitude <= box[1]) || (data.Latitude <= box[0] && data.Latitude >= box[1])) &&
+						((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
 						data.Id = strconv.FormatUint(geoDataStore[i].GeoHash, 10) + "-" + data.Name
 
 						locationsFound = append(locationsFound, data)
