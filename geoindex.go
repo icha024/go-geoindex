@@ -135,8 +135,8 @@ func GetLocation(name string) (geodata *GeoData, err error) {
 		searchUidLimit = len(geoDataStore)
 	}
 	for i := searchIdx; i < searchUidLimit; i++ {
-		if geoDataStore[searchIdx].Name == itemName {
-			return geoDataStore[searchIdx], nil
+		if geoDataStore[i].Name == itemName {
+			return geoDataStore[i], nil
 		}
 	}
 
