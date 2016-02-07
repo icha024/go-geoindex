@@ -36,12 +36,12 @@ package geoindex
 */
 import "C"
 import (
+	"errors"
 	"flag"
 	"github.com/cznic/sortutil"
 	"log"
 	"math"
 	"sort"
-	"errors"
 )
 
 type GeoData struct {
@@ -56,12 +56,14 @@ type GeoData struct {
 
 // GeoSlice sorted by GeoHash
 type GeoSlice []*GeoData
+
 func (s GeoSlice) Len() int           { return len(s) }
 func (s GeoSlice) Less(i, j int) bool { return s[i].GeoHash < s[j].GeoHash }
 func (s GeoSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // GeoIdSlice sorted by ID
 type GeoIdSlice []*GeoData
+
 func (s GeoIdSlice) Len() int           { return len(s) }
 func (s GeoIdSlice) Less(i, j int) bool { return s[i].Id < s[j].Id }
 func (s GeoIdSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
@@ -160,16 +162,16 @@ func SearchBound(provider string, latitude, longitude, bound float64) []*GeoData
 		Debugf("Normalized Neighbours Hash: %v to %v", neighbours[nIdx], neighboursUpperLimit)
 		searchIdx := sort.Search(geoStoreKeysLen, func(i int) bool { return geoStore[provider][i].GeoHash >= neighbours[nIdx] })
 		if searchIdx < geoStoreKeysLen { // Not found would turn index=N
-			Debugf("found location?");
+			Debugf("found location?")
 			// found location
 			for i := searchIdx; i < geoStoreKeysLen; i++ {
 				if geoStore[provider][i].GeoHash < neighboursUpperLimit {
 					data := geoStore[provider][i]
-					Debugf("filtering by lat/long: %v %v", data.Latitude, data.Longitude);
-					Debugf("filtering by bounding box: %v %v %v %v", box[0], box[1], box[2], box[3]);
+					Debugf("filtering by lat/long: %v %v", data.Latitude, data.Longitude)
+					Debugf("filtering by bounding box: %v %v %v %v", box[0], box[1], box[2], box[3])
 					// filter by strict bounding box
 					if ((data.Latitude >= box[0] && data.Latitude <= box[1]) || (data.Latitude <= box[0] && data.Latitude >= box[1])) &&
-					((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
+						((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
 						locationsFound = append(locationsFound, data)
 						Debugf("Search found location in GeoStore: %v", geoStore[provider][searchIdx])
 					}
