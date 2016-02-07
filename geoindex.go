@@ -41,35 +41,39 @@ import (
 	"log"
 	"math"
 	"sort"
-	"strconv"
-	"strings"
+	"errors"
 )
 
 type GeoData struct {
-	// Generated automatically, use this to fetch records
-	Id string
+	// Must be unique
+	Id int
 	// Generated automatically
 	GeoHash uint64
-	// User must specify these, name should be unique per location
-	Name                string
+	// User must specify these
 	Latitude, Longitude float64
 	Properties          *[]string
 }
 
-// For custom search and sort
+// GeoSlice sorted by GeoHash
 type GeoSlice []*GeoData
-
 func (s GeoSlice) Len() int           { return len(s) }
 func (s GeoSlice) Less(i, j int) bool { return s[i].GeoHash < s[j].GeoHash }
 func (s GeoSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-var geoDataStore GeoSlice
+// GeoIdSlice sorted by ID
+type GeoIdSlice []*GeoData
+func (s GeoIdSlice) Len() int           { return len(s) }
+func (s GeoIdSlice) Less(i, j int) bool { return s[i].Id < s[j].Id }
+func (s GeoIdSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
 var searchReady bool = false
+var geoStore = make(map[string]GeoSlice)
+var geoIdStore GeoIdSlice
 
 const MAX_STEPS C.uint8_t = 26
 
 // Debug logger. Remember to init flag.Parse() in main!!!
-var debug *bool = flag.Bool("debug", false, "enable debug logging")
+var debug *bool = flag.Bool("debugLib", false, "enable debug logging")
 
 func Debugf(format string, args ...interface{}) {
 	if *debug {
@@ -102,53 +106,20 @@ func getNeighbours(hashBits uint64, steps uint8) []uint64 {
 	return neighbourArr
 }
 
-func GetLocation(name string) (geodata *GeoData, err error) {
-
-	nameSplit := strings.Split(name, "-")
-	if len(nameSplit) != 2 {
-		Debugf("Invalid location identifier: %v", name)
-		return nil, err
+func GetLocation(id int) (geodata *GeoData, err error) {
+	if id == 0 || id >= len(geoIdStore) {
+		return nil, errors.New("index out of range")
 	}
-	numHash, err := strconv.ParseInt(nameSplit[0], 10, 64)
-	if err != nil {
-		Debugf("Invalid location identifier: %v", name)
-		return nil, err
-	}
-
-	itemName := nameSplit[1]
-	if err != nil {
-		Debugf("Invalid location identifier: %v", name)
-		return nil, err
-	}
-
-	// Search for the item...
-	hashUint64 := uint64(numHash)
-	searchIdx := sort.Search(len(geoDataStore), func(i int) bool { return geoDataStore[i].GeoHash >= hashUint64 })
-	if searchIdx >= len(geoDataStore) || geoDataStore[searchIdx].GeoHash != hashUint64 {
-		Debugf("Can not find at searchIdx: %v, last item hash: %v, id: %v, name: %v", searchIdx, geoDataStore[searchIdx-1].GeoHash, geoDataStore[searchIdx-1].Name, name)
-		return nil, err
-	}
-
-	// Filter by id
-	searchUidLimit := searchIdx + 100
-	if searchUidLimit > len(geoDataStore) {
-		searchUidLimit = len(geoDataStore)
-	}
-	for i := searchIdx; i < searchUidLimit; i++ {
-		if geoDataStore[i].Name == itemName {
-			return geoDataStore[i], nil
-		}
-	}
-
-	Debugf("Invalid location identifier: %v", name)
-	return nil, err
+	return geoIdStore[id-1], nil
 }
 
 // Add geo location data to search index.
-func AddCoord(geoData *GeoData) {
+func AddCoord(provider string, geoData *GeoData) {
 	hash := geohashEncodeMax(geoData.Latitude, geoData.Longitude)
 	geoData.GeoHash = hash
-	geoDataStore = append(geoDataStore, geoData)
+	geoStore[provider] = append(geoStore[provider], geoData)
+	geoStore["default"] = geoStore[provider]
+	geoIdStore = append(geoIdStore, geoData)
 	searchReady = false
 }
 
@@ -161,12 +132,15 @@ func geohashEncodeMax(latitude, longitude float64) uint64 {
 
 // Sort the list of geo so search can happen. Normally automatically trigger by search.
 func initSearch() {
-	sort.Sort(geoDataStore)
+	for provider := range geoStore {
+		sort.Sort(geoStore[provider])
+	}
+	sort.Sort(geoIdStore)
 	searchReady = true // might cause race cond, but assume add doesn't happen often.
 }
 
 // Search a latitude/longitude in an area bounded (km) for known location data.
-func SearchBound(latitude, longitude, bound float64) []*GeoData {
+func SearchBound(provider string, latitude, longitude, bound float64) []*GeoData {
 	if !searchReady {
 		initSearch()
 	}
@@ -179,25 +153,25 @@ func SearchBound(latitude, longitude, bound float64) []*GeoData {
 	box := boundingBox(latitude, longitude, bound)
 
 	locationsFound := make([]*GeoData, 0)
-	geoStoreKeysLen := len(geoDataStore)
+	geoStoreKeysLen := len(geoStore[provider])
 	for nIdx := range neighbours {
 		neighboursUpperLimit := (neighbours[nIdx] + 1) << uint((MAX_STEPS-hashSteps)*2)
 		neighbours[nIdx] = neighbours[nIdx] << uint((MAX_STEPS-hashSteps)*2)
 		Debugf("Normalized Neighbours Hash: %v to %v", neighbours[nIdx], neighboursUpperLimit)
-		searchIdx := sort.Search(geoStoreKeysLen, func(i int) bool { return geoDataStore[i].GeoHash >= neighbours[nIdx] })
+		searchIdx := sort.Search(geoStoreKeysLen, func(i int) bool { return geoStore[provider][i].GeoHash >= neighbours[nIdx] })
 		if searchIdx < geoStoreKeysLen { // Not found would turn index=N
+			Debugf("found location?");
 			// found location
 			for i := searchIdx; i < geoStoreKeysLen; i++ {
-				if geoDataStore[i].GeoHash < neighboursUpperLimit {
-					data := geoDataStore[i]
-					// filter by strict bounding box
+				if geoStore[provider][i].GeoHash < neighboursUpperLimit {
+					data := geoStore[provider][i]
+					Debugf("filtering by lat/long: %v %v", data.Latitude, data.Longitude);
+					Debugf("filtering by bounding box: %v %v %v %v", box[0], box[1], box[2], box[3]);
 					// filter by strict bounding box
 					if ((data.Latitude >= box[0] && data.Latitude <= box[1]) || (data.Latitude <= box[0] && data.Latitude >= box[1])) &&
-						((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
-						data.Id = strconv.FormatUint(geoDataStore[i].GeoHash, 10) + "-" + data.Name
-
+					((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
 						locationsFound = append(locationsFound, data)
-						Debugf("Search found location in GeoStore: %v", geoDataStore[searchIdx])
+						Debugf("Search found location in GeoStore: %v", geoStore[provider][searchIdx])
 					}
 				} else {
 					break
