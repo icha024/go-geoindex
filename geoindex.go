@@ -95,10 +95,10 @@ func AddLocation(provider string, geoData *GeoData) {
 
 // GetLocation data for a location ID.
 func GetLocation(id int) (geodata *GeoData, err error) {
-	if id == 0 || id >= len(geoIdStore) {
+	if id >= len(geoIdStore) {
 		return nil, errors.New("index out of range")
 	}
-	return geoIdStore[id-1], nil
+	return geoIdStore[id], nil
 }
 
 // SearchLocations around latitude/longitude in bounded area (km) for known location points.
@@ -131,7 +131,7 @@ func SearchLocations(provider string, latitude, longitude, bound float64) []*Geo
 					Debugf("filtering by bounding box: %v %v %v %v", box[0], box[1], box[2], box[3])
 					// filter by strict bounding box
 					if ((data.Latitude >= box[0] && data.Latitude <= box[1]) || (data.Latitude <= box[0] && data.Latitude >= box[1])) &&
-						((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
+					((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
 						locationsFound = append(locationsFound, data)
 						Debugf("Search found location in GeoStore: %v", geoStore[provider][searchIdx])
 					}
@@ -210,3 +210,4 @@ func boundingBox(latitude, longitude, boundKm float64) []float64 {
 		maxLongitude,
 	}
 }
+
