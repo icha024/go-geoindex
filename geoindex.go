@@ -83,40 +83,8 @@ func Debugf(format string, args ...interface{}) {
 	}
 }
 
-func getNeighbours(hashBits uint64, steps uint8) []uint64 {
-	var neighbours C.GeoHashNeighbors
-	var hash C.GeoHashBits
-	hash.bits = C.uint64_t(hashBits)
-	hash.step = C.uint8_t(steps)
-	C.geohashNeighbors(&hash, &neighbours)
-
-	neighbourArr := sortutil.Uint64Slice{
-		uint64(hashBits),
-		uint64(neighbours.north.bits),
-		uint64(neighbours.east.bits),
-		uint64(neighbours.west.bits),
-		uint64(neighbours.south.bits),
-		uint64(neighbours.north_east.bits),
-		uint64(neighbours.south_east.bits),
-		uint64(neighbours.north_west.bits),
-		uint64(neighbours.south_west.bits),
-	}
-	//	sort.Sort(neighbourArr)
-	if steps <= 6 {
-		sortutil.Dedupe(neighbourArr) // Can have duplicates if search range is large (>~5000km)
-	}
-	return neighbourArr
-}
-
-func GetLocation(id int) (geodata *GeoData, err error) {
-	if id == 0 || id >= len(geoIdStore) {
-		return nil, errors.New("index out of range")
-	}
-	return geoIdStore[id-1], nil
-}
-
-// Add geo location data to search index.
-func AddCoord(provider string, geoData *GeoData) {
+// AddLocation data to search index.
+func AddLocation(provider string, geoData *GeoData) {
 	hash := geohashEncodeMax(geoData.Latitude, geoData.Longitude)
 	geoData.GeoHash = hash
 	geoStore[provider] = append(geoStore[provider], geoData)
@@ -125,24 +93,16 @@ func AddCoord(provider string, geoData *GeoData) {
 	searchReady = false
 }
 
-// Encode a geo hash to MAX(26) steps
-func geohashEncodeMax(latitude, longitude float64) uint64 {
-	var hash C.GeoHashBits
-	C.geohashEncodeWGS84(C.double(latitude), C.double(longitude), MAX_STEPS, &hash)
-	return uint64(hash.bits)
-}
-
-// Sort the list of geo so search can happen. Normally automatically trigger by search.
-func initSearch() {
-	for provider := range geoStore {
-		sort.Sort(geoStore[provider])
+// GetLocation data for a location ID.
+func GetLocation(id int) (geodata *GeoData, err error) {
+	if id == 0 || id >= len(geoIdStore) {
+		return nil, errors.New("index out of range")
 	}
-	sort.Sort(geoIdStore)
-	searchReady = true // might cause race cond, but assume add doesn't happen often.
+	return geoIdStore[id-1], nil
 }
 
-// Search a latitude/longitude in an area bounded (km) for known location data.
-func SearchBound(provider string, latitude, longitude, bound float64) []*GeoData {
+// SearchLocations around latitude/longitude in bounded area (km) for known location points.
+func SearchLocations(provider string, latitude, longitude, bound float64) []*GeoData {
 	if !searchReady {
 		initSearch()
 	}
@@ -182,6 +142,47 @@ func SearchBound(provider string, latitude, longitude, bound float64) []*GeoData
 		}
 	}
 	return locationsFound
+}
+
+// Sort the list of geo so binary search can be used. Normally triggered by the first search.
+func initSearch() {
+	for provider := range geoStore {
+		sort.Sort(geoStore[provider])
+	}
+	sort.Sort(geoIdStore)
+	searchReady = true // might cause race cond, but assume add doesn't happen often.
+}
+
+func getNeighbours(hashBits uint64, steps uint8) []uint64 {
+	var neighbours C.GeoHashNeighbors
+	var hash C.GeoHashBits
+	hash.bits = C.uint64_t(hashBits)
+	hash.step = C.uint8_t(steps)
+	C.geohashNeighbors(&hash, &neighbours)
+
+	neighbourArr := sortutil.Uint64Slice{
+		uint64(hashBits),
+		uint64(neighbours.north.bits),
+		uint64(neighbours.east.bits),
+		uint64(neighbours.west.bits),
+		uint64(neighbours.south.bits),
+		uint64(neighbours.north_east.bits),
+		uint64(neighbours.south_east.bits),
+		uint64(neighbours.north_west.bits),
+		uint64(neighbours.south_west.bits),
+	}
+	//	sort.Sort(neighbourArr)
+	if steps <= 6 {
+		sortutil.Dedupe(neighbourArr) // Can have duplicates if search range is large (>~5000km)
+	}
+	return neighbourArr
+}
+
+// Encode a geo hash to MAX(26) steps
+func geohashEncodeMax(latitude, longitude float64) uint64 {
+	var hash C.GeoHashBits
+	C.geohashEncodeWGS84(C.double(latitude), C.double(longitude), MAX_STEPS, &hash)
+	return uint64(hash.bits)
 }
 
 // The approximate conversions are (doesn't fully correct for the Earth's polar flattening):
