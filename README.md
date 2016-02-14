@@ -45,4 +45,3 @@ Limitations
   * 1 deg longitude = 111.320*cos(latitude) km
 * This geohash based proximity search does not search across the boundary at the poles (0) and at the international date line (180/-180).
 * Name of location should be unique for the same coordinate.
-* Limited to 100 locations at the same coordinate.
