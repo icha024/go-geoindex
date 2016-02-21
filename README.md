@@ -42,7 +42,6 @@ GetLocation(locationId)
 ##Limitations
 ------
 * Search bounds are approximate square, and become gradually curved as the area increases.
-* Bound distance are approximate and does not take the flat polar region into account.
 * [Latitude/Longitude approximation:](http://stackoverflow.com/questions/1253499/simple-calculations-for-working-with-lat-lon-km-distance)
   * 1 deg latitude = 110.574 km
   * 1 deg longitude = 111.320*cos(latitude) km
