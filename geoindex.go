@@ -109,7 +109,7 @@ func GetLocation(id int) (geodata *GeoData, err error) {
 // SearchLocations around latitude/longitude in bounded area (km) for known location points.
 func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 	if !searchReady {
-		initSearch()
+		InitSearch()
 	}
 	hashSteps := C.geohashEstimateStepsByRadius(C.double(bound * 1000))
 	debugf("Hash step: %v, for radius: %v km", hashSteps, bound)
@@ -149,8 +149,8 @@ func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 	return locationsFound
 }
 
-// Sort the list of geo so binary search can be used. Normally triggered by the first search.
-func initSearch() {
+// InitSearch should be call after all locations are added. This sort the list of geo so binary search can be used.
+func InitSearch() {
 	sort.Sort(geoHashStore)
 	searchReady = true // might cause race cond if data are added and search at the same time
 }
