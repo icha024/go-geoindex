@@ -47,7 +47,7 @@ import (
 
 // GeoData location representation
 type GeoData struct {
-	// Must be unique
+	// Generated automatically, must be unique.
 	ID int
 	// Generated automatically
 	GeoHash uint64
@@ -66,18 +66,12 @@ func (s geoHashSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 // GeoIDSlice sorted by ID
 type geoIDSlice []*GeoData
 
-var mutex = &sync.Mutex{}
-
-// func (s geoIDSlice) Len() int           { return len(s) }
-// func (s geoIDSlice) Less(i, j int) bool { return s[i].ID < s[j].ID }
-// func (s geoIDSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-
-var searchReady = false
-var geoHashStore geoHashSlice
-
-var geoIDStore geoIDSlice
-
 const maxSteps C.uint8_t = 26
+
+var geoHashStore geoHashSlice
+var geoIDStore geoIDSlice
+var mutex = &sync.Mutex{}
+var searchReady = false
 
 // Debug logger. Remember to init flag.Parse() in main!!!
 var debug = flag.Bool("debugLib", false, "enable debug logging")
@@ -96,8 +90,8 @@ func AddLocation(geoData *GeoData) (err error) {
 	hash := geohashEncodeMax(geoData.Latitude, geoData.Longitude)
 	geoData.GeoHash = hash
 	mutex.Lock()
+	geoData.ID = len(geoIDStore)
 	geoIDStore = append(geoIDStore, geoData)
-	geoData.ID = len(geoIDStore) - 1
 	geoHashStore = append(geoHashStore, geoData)
 	mutex.Unlock()
 	searchReady = false
@@ -158,8 +152,7 @@ func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 // Sort the list of geo so binary search can be used. Normally triggered by the first search.
 func initSearch() {
 	sort.Sort(geoHashStore)
-	// sort.Sort(geoIDStore)
-	searchReady = true // might cause race cond, but assume add doesn't happen often.
+	searchReady = true // might cause race cond if data are added and search at the same time
 }
 
 func getNeighbours(hashBits uint64, steps uint8) []uint64 {
