@@ -42,6 +42,7 @@ import (
 	"log"
 	"math"
 	"sort"
+	"sync"
 )
 
 // GeoData location representation
@@ -65,12 +66,15 @@ func (s geoHashSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 // GeoIDSlice sorted by ID
 type geoIDSlice []*GeoData
 
-func (s geoIDSlice) Len() int           { return len(s) }
-func (s geoIDSlice) Less(i, j int) bool { return s[i].ID < s[j].ID }
-func (s geoIDSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+var mutex = &sync.Mutex{}
+
+// func (s geoIDSlice) Len() int           { return len(s) }
+// func (s geoIDSlice) Less(i, j int) bool { return s[i].ID < s[j].ID }
+// func (s geoIDSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 var searchReady = false
 var geoHashStore geoHashSlice
+
 var geoIDStore geoIDSlice
 
 const maxSteps C.uint8_t = 26
@@ -85,12 +89,19 @@ func debugf(format string, args ...interface{}) {
 }
 
 // AddLocation data to search index.
-func AddLocation(geoData *GeoData) {
+func AddLocation(geoData *GeoData) (err error) {
+	if geoData.ID != 0 || geoData.GeoHash != 0 {
+		return errors.New("GeoHash and ID field should not be specified, it will be generated internally.")
+	}
 	hash := geohashEncodeMax(geoData.Latitude, geoData.Longitude)
 	geoData.GeoHash = hash
-	geoHashStore = append(geoHashStore, geoData)
+	mutex.Lock()
 	geoIDStore = append(geoIDStore, geoData)
+	geoData.ID = len(geoIDStore) - 1
+	geoHashStore = append(geoHashStore, geoData)
+	mutex.Unlock()
 	searchReady = false
+	return nil
 }
 
 // GetLocation data for a location ID.
@@ -114,7 +125,6 @@ func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 	neighbours := getNeighbours(uint64(hash.bits), uint8(hashSteps))
 	box := boundingBox(latitude, longitude, bound)
 
-	// locationsFound := make([]*GeoData, 0)
 	var locationsFound []*GeoData
 	geoStoreKeysLen := len(geoHashStore)
 	for nIdx := range neighbours {
@@ -148,7 +158,7 @@ func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 // Sort the list of geo so binary search can be used. Normally triggered by the first search.
 func initSearch() {
 	sort.Sort(geoHashStore)
-	sort.Sort(geoIDStore)
+	// sort.Sort(geoIDStore)
 	searchReady = true // might cause race cond, but assume add doesn't happen often.
 }
 
