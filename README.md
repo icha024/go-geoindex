@@ -20,7 +20,7 @@ Some more documentations:
 ### Add location:
 ```go
 prop := []string{"property1", "property2"}
-locationID, err = AddLocation(&GeoData{Latitude: latitude, Longitude: longitude, Properties: &prop})
+locationID, err := AddLocation(&GeoData{Latitude: latitude, Longitude: longitude, Properties: &prop})
 ```
 ###Search locations:
 Search at latitude/longitude (-32.1, 120.3) within a 12 km bound.
