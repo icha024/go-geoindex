@@ -82,10 +82,10 @@ func debugf(format string, args ...interface{}) {
 	}
 }
 
-// AddLocation data to search index.
-func AddLocation(geoData *GeoData) (err error) {
+// AddLocation data to search index, returns the location ID assigned.
+func AddLocation(geoData *GeoData) (id int, err error) {
 	if geoData.ID != 0 || geoData.GeoHash != 0 {
-		return errors.New("GeoHash and ID field should not be specified, it will be generated internally.")
+		return 0, errors.New("GeoHash and ID field should not be specified, it will be generated internally.")
 	}
 	hash := geohashEncodeMax(geoData.Latitude, geoData.Longitude)
 	geoData.GeoHash = hash
@@ -95,7 +95,7 @@ func AddLocation(geoData *GeoData) (err error) {
 	geoHashStore = append(geoHashStore, geoData)
 	mutex.Unlock()
 	searchReady = false
-	return nil
+	return geoData.ID, nil
 }
 
 // GetLocation data for a location ID.

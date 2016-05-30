@@ -20,7 +20,7 @@ Some more documentations:
 ### Add location:
 ```go
 prop := []string{"property1", "property2"}
-AddLocation(&GeoData{Latitude: latitude, Longitude: longitude, Properties: &prop})
+locationID, err = AddLocation(&GeoData{Latitude: latitude, Longitude: longitude, Properties: &prop})
 ```
 ###Search locations:
 Search at latitude/longitude (-32.1, 120.3) within a 12 km bound.
@@ -31,12 +31,12 @@ locations := SearchBound(-32.2, 120.3, 12)
 ###Get location details:
 Get details by ID.
 ```go
-locationID := 12345 // From GeoData.ID field of search results.
+locationID := 12345 // Either from add operation, or from search results.
 GetLocation(locationID)
 ```
 
 ## Performance
-Tested with a simple local HTTP server in plain Go lang and Apache Bench. Using a HTTP GET search operation that returns data in GeoJson format, on my workstation 6x vCore (3.2Ghz) i7 CPU (capped)
+Tested with a simple local HTTP server in plain Go lang and Apache Bench. Using a HTTP GET search operation that returns data in GeoJson format, on my 6x vCore i7 CPU (3.2Ghz Haswell) desktop.
 
 #### (Basic) Total 30 locations in the system, search 10 km radius to return 2 record.
 
@@ -71,7 +71,6 @@ Percentage of the requests served within a certain time (ms)
   98%      1
   99%      1
  100%      3 (longest request)
-
 ```
 
 #### (Extreme) Total 443,969 locations in the system, search 10 km radius to return 490 record.
