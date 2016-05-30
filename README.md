@@ -20,14 +20,12 @@ Some more documentations:
 ##Usage
 ------
 ###Add location:
-Locations can be added to a provider (optional). This is useful for categorizing location types, eg. Italian food, Asian restaurant, French cruisine, etc
 ```go
-locationID := 12345
 prop := []string{"property1", "property2"}
-AddLocation(&GeoData{Latitude: latitude, Longitude: longitude, ID: locationID, Properties: &prop})
+AddLocation(&GeoData{Latitude: latitude, Longitude: longitude, Properties: &prop})
 ```
 ###Search locations:
-Search at lat/long (-32.1, 120.3) within a 12 km bound.
+Search at latitude/longitude (-32.1, 120.3) within a 12 km bound.
 ```go
 locations := SearchBound(-32.2, 120.3, 12)
 ```
@@ -35,7 +33,7 @@ locations := SearchBound(-32.2, 120.3, 12)
 ###Get location details:
 Get details by ID.
 ```go
-locationID := 12345
+locationID := 12345 // From GeoData.ID field of search results.
 GetLocation(locationID)
 ```
 
