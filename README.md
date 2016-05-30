@@ -24,7 +24,7 @@ Locations can be added to a provider (optional). This is useful for categorizing
 ```go
 locationId := 12345
 prop := []string{"property1", "property2"}
-AddLocation(providerId, &GeoData{Latitude: latitude, Longitude: longitude, Id: locationId, Properties: &prop})
+AddLocation(&GeoData{Latitude: latitude, Longitude: longitude, Id: locationId, Properties: &prop})
 ```
 ###Search locations:
 Search at lat/long (-32.1, 120.3) within a 12 km bound.
