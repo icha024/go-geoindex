@@ -118,6 +118,7 @@ Percentage of the requests served within a certain time (ms)
 #### (Extreme) Total 443,969 locations in the system, search 10 km bound to return 490 records.
 
 Around 600 TPS for extremely large dataset and high HTTP overhead/traffic.
+(When we limit HTTP server to only send the first 250 records, the TPS jumps to around 900)
 
 ```
 Concurrency Level:      10
