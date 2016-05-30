@@ -20,23 +20,29 @@ Some more documentations:
 ### Add location:
 ```go
 prop := []string{"property1", "property2"}
-locationID, err := AddLocation(&GeoData{Latitude: latitude, Longitude: longitude, Properties: &prop})
+locationID, err := geoindex.AddLocation(&GeoData{Latitude: latitude, Longitude: longitude, Properties: &prop})
 ```
+
+**Initialize search index** (optional) - Otherwise it will trigger an indexed on the first search.
+```go
+geoindex.InitSearch()
+```
+
 ###Search locations:
 Search at latitude/longitude (-32.1, 120.3) within a 12 km bound.
 ```go
-locations := SearchBound(-32.2, 120.3, 12)
+locations := geoindex.SearchBound(-32.2, 120.3, 12)
 ```
 
 ###Get location details:
 Get details by ID.
 ```go
 locationID := 12345 // Either from add operation, or from search results.
-GetLocation(locationID)
+geoindex.GetLocation(locationID)
 ```
 
 ## Performance
-Tested with a simple local HTTP server in plain Go lang and Apache Bench. Using a HTTP GET search operation that returns data in GeoJson format, on my 6x vCore i7 CPU (3.2Ghz Haswell) desktop.
+Tested with a simple local HTTP server (no cache) in plain Go lang 1.6 and Apache Bench. Using a HTTP GET search operation that returns data in GeoJson format, on my 6x vCore i7 CPU (3.2Ghz Haswell) Ubuntu 16.04 desktop.
 
 #### (Basic) Total 30 locations in the system, search 10 km radius to return 2 record.
 
@@ -71,6 +77,42 @@ Percentage of the requests served within a certain time (ms)
   98%      1
   99%      1
  100%      3 (longest request)
+```
+
+#### (Normal) Total 443,969 locations in the system, search 1 km radius to return 42 record.
+
+Around 12,000 TPS for norminal conditions.
+
+```
+Concurrency Level:      10
+Time taken for tests:   4.194 seconds
+Complete requests:      50000
+Failed requests:        0
+Total transferred:      364050000 bytes
+HTML transferred:       359200000 bytes
+Requests per second:    11923.10 [#/sec] (mean)
+Time per request:       0.839 [ms] (mean)
+Time per request:       0.084 [ms] (mean, across all concurrent requests)
+Transfer rate:          84777.40 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.0      0       2
+Processing:     0    1   1.6      1      80
+Waiting:        0    1   1.6      0      79
+Total:          0    1   1.6      1      80
+
+Percentage of the requests served within a certain time (ms)
+  50%      1
+  66%      1
+  75%      1
+  80%      1
+  90%      1
+  95%      1
+  98%      2
+  99%      3
+ 100%     80 (longest request)
+
 ```
 
 #### (Extreme) Total 443,969 locations in the system, search 10 km radius to return 490 record.
