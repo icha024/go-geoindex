@@ -44,9 +44,10 @@ import (
 	"sort"
 )
 
+// GeoData location representation
 type GeoData struct {
 	// Must be unique
-	Id int
+	ID int
 	// Generated automatically
 	GeoHash uint64
 	// User must specify these
@@ -54,31 +55,30 @@ type GeoData struct {
 	Properties          *[]string
 }
 
-// GeoSlice sorted by GeoHash
-type GeoSlice []*GeoData
+// GeoHashSlice sorted by GeoHash
+type geoHashSlice []*GeoData
 
-func (s GeoSlice) Len() int           { return len(s) }
-func (s GeoSlice) Less(i, j int) bool { return s[i].GeoHash < s[j].GeoHash }
-func (s GeoSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s geoHashSlice) Len() int           { return len(s) }
+func (s geoHashSlice) Less(i, j int) bool { return s[i].GeoHash < s[j].GeoHash }
+func (s geoHashSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-// GeoIdSlice sorted by ID
-type GeoIdSlice []*GeoData
+// GeoIDSlice sorted by ID
+type geoIDSlice []*GeoData
 
-func (s GeoIdSlice) Len() int           { return len(s) }
-func (s GeoIdSlice) Less(i, j int) bool { return s[i].Id < s[j].Id }
-func (s GeoIdSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s geoIDSlice) Len() int           { return len(s) }
+func (s geoIDSlice) Less(i, j int) bool { return s[i].ID < s[j].ID }
+func (s geoIDSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 var searchReady = false
-// var geoStore = make(map[string]GeoSlice)
-var geoHashStore GeoSlice
-var geoIdStore GeoIdSlice
+var geoHashStore geoHashSlice
+var geoIDStore geoIDSlice
 
-const MAX_STEPS C.uint8_t = 26
+const maxSteps C.uint8_t = 26
 
 // Debug logger. Remember to init flag.Parse() in main!!!
 var debug = flag.Bool("debugLib", false, "enable debug logging")
 
-func Debugf(format string, args ...interface{}) {
+func debugf(format string, args ...interface{}) {
 	if *debug {
 		log.Printf("DEBUG "+format, args...)
 	}
@@ -89,16 +89,16 @@ func AddLocation(geoData *GeoData) {
 	hash := geohashEncodeMax(geoData.Latitude, geoData.Longitude)
 	geoData.GeoHash = hash
 	geoHashStore = append(geoHashStore, geoData)
-	geoIdStore = append(geoIdStore, geoData)
+	geoIDStore = append(geoIDStore, geoData)
 	searchReady = false
 }
 
 // GetLocation data for a location ID.
 func GetLocation(id int) (geodata *GeoData, err error) {
-	if id >= len(geoIdStore) {
+	if id >= len(geoIDStore) {
 		return nil, errors.New("index out of range")
 	}
-	return geoIdStore[id], nil
+	return geoIDStore[id], nil
 }
 
 // SearchLocations around latitude/longitude in bounded area (km) for known location points.
@@ -107,33 +107,34 @@ func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 		initSearch()
 	}
 	hashSteps := C.geohashEstimateStepsByRadius(C.double(bound * 1000))
-	Debugf("Hash step: %v, for radius: %v km", hashSteps, bound)
+	debugf("Hash step: %v, for radius: %v km", hashSteps, bound)
 
 	var hash C.GeoHashBits
 	C.geohashEncodeWGS84(C.double(latitude), C.double(longitude), C.uint8_t(hashSteps), &hash)
 	neighbours := getNeighbours(uint64(hash.bits), uint8(hashSteps))
 	box := boundingBox(latitude, longitude, bound)
 
-	locationsFound := make([]*GeoData, 0)
+	// locationsFound := make([]*GeoData, 0)
+	var locationsFound []*GeoData
 	geoStoreKeysLen := len(geoHashStore)
 	for nIdx := range neighbours {
-		neighboursUpperLimit := (neighbours[nIdx] + 1) << uint((MAX_STEPS-hashSteps)*2)
-		neighbours[nIdx] = neighbours[nIdx] << uint((MAX_STEPS-hashSteps)*2)
-		Debugf("Normalized Neighbours Hash: %v to %v", neighbours[nIdx], neighboursUpperLimit)
+		neighboursUpperLimit := (neighbours[nIdx] + 1) << uint((maxSteps-hashSteps)*2)
+		neighbours[nIdx] = neighbours[nIdx] << uint((maxSteps-hashSteps)*2)
+		debugf("Normalized Neighbours Hash: %v to %v", neighbours[nIdx], neighboursUpperLimit)
 		searchIdx := sort.Search(geoStoreKeysLen, func(i int) bool { return geoHashStore[i].GeoHash >= neighbours[nIdx] })
 		if searchIdx < geoStoreKeysLen { // Not found would turn index=N
-			Debugf("found location?")
+			debugf("found location?")
 			// found location
 			for i := searchIdx; i < geoStoreKeysLen; i++ {
 				if geoHashStore[i].GeoHash < neighboursUpperLimit {
 					data := geoHashStore[i]
-					Debugf("filtering by lat/long: %v %v", data.Latitude, data.Longitude)
-					Debugf("filtering by bounding box: %v %v %v %v", box[0], box[1], box[2], box[3])
+					debugf("filtering by lat/long: %v %v", data.Latitude, data.Longitude)
+					debugf("filtering by bounding box: %v %v %v %v", box[0], box[1], box[2], box[3])
 					// filter by strict bounding box
 					if ((data.Latitude >= box[0] && data.Latitude <= box[1]) || (data.Latitude <= box[0] && data.Latitude >= box[1])) &&
-					((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
+						((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
 						locationsFound = append(locationsFound, data)
-						Debugf("Search found location in geoHashStore: %v", geoHashStore[searchIdx])
+						debugf("Search found location in geoHashStore: %v", geoHashStore[searchIdx])
 					}
 				} else {
 					break
@@ -147,7 +148,7 @@ func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 // Sort the list of geo so binary search can be used. Normally triggered by the first search.
 func initSearch() {
 	sort.Sort(geoHashStore)
-	sort.Sort(geoIdStore)
+	sort.Sort(geoIDStore)
 	searchReady = true // might cause race cond, but assume add doesn't happen often.
 }
 
@@ -179,7 +180,7 @@ func getNeighbours(hashBits uint64, steps uint8) []uint64 {
 // Encode a geo hash to MAX(26) steps
 func geohashEncodeMax(latitude, longitude float64) uint64 {
 	var hash C.GeoHashBits
-	C.geohashEncodeWGS84(C.double(latitude), C.double(longitude), MAX_STEPS, &hash)
+	C.geohashEncodeWGS84(C.double(latitude), C.double(longitude), maxSteps, &hash)
 	return uint64(hash.bits)
 }
 
@@ -196,10 +197,10 @@ func boundingBox(latitude, longitude, boundKm float64) []float64 {
 	minLongitude := longitude - longDiff
 	maxLongitude := longitude + longDiff
 
-	Debugf("min lat: %v", minLatitude)
-	Debugf("max lat: %v", maxLatitude)
-	Debugf("min long: %v", minLongitude)
-	Debugf("max long: %v", maxLongitude)
+	debugf("min lat: %v", minLatitude)
+	debugf("max lat: %v", maxLatitude)
+	debugf("min long: %v", minLongitude)
+	debugf("max long: %v", maxLongitude)
 
 	return []float64{
 		minLatitude,
@@ -208,4 +209,3 @@ func boundingBox(latitude, longitude, boundKm float64) []float64 {
 		maxLongitude,
 	}
 }
-
