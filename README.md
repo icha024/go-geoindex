@@ -44,7 +44,7 @@ geoindex.GetLocation(locationID)
 ## Performance
 Tested with a simple local HTTP server (no cache) in plain Go lang 1.6 and Apache Bench. Using a HTTP GET search operation that returns data in GeoJson format, on my 6x vCore i7 CPU (3.2Ghz Haswell) Ubuntu 16.04 desktop.
 
-#### (Basic) Total 30 locations in the system, search 10 km radius to return 2 record.
+#### (Basic) Total 30 locations in the system, search 10 km bound to return 2 records.
 
 Over 26,000 TPS for basic dataset when exposed as a HTTP services
 
@@ -79,7 +79,7 @@ Percentage of the requests served within a certain time (ms)
  100%      3 (longest request)
 ```
 
-#### (Normal) Total 443,969 locations in the system, search 1 km radius to return 42 record.
+#### (Normal) Total 443,969 locations in the system, search 1 km bound to return 42 records.
 
 Around 12,000 TPS for norminal conditions.
 
@@ -115,9 +115,9 @@ Percentage of the requests served within a certain time (ms)
 
 ```
 
-#### (Extreme) Total 443,969 locations in the system, search 10 km radius to return 490 record.
+#### (Extreme) Total 443,969 locations in the system, search 10 km bound to return 490 records.
 
-Around 600 TPS for extremely large dataset and high HTTP overhead/traffic (85 Mbyte/sec).
+Around 600 TPS for extremely large dataset and high HTTP overhead/traffic.
 
 ```
 Concurrency Level:      10
