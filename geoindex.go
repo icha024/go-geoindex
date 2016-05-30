@@ -68,14 +68,15 @@ func (s GeoIdSlice) Len() int           { return len(s) }
 func (s GeoIdSlice) Less(i, j int) bool { return s[i].Id < s[j].Id }
 func (s GeoIdSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-var searchReady bool = false
-var geoStore = make(map[string]GeoSlice)
+var searchReady = false
+// var geoStore = make(map[string]GeoSlice)
+var geoHashStore GeoSlice
 var geoIdStore GeoIdSlice
 
 const MAX_STEPS C.uint8_t = 26
 
 // Debug logger. Remember to init flag.Parse() in main!!!
-var debug *bool = flag.Bool("debugLib", false, "enable debug logging")
+var debug = flag.Bool("debugLib", false, "enable debug logging")
 
 func Debugf(format string, args ...interface{}) {
 	if *debug {
@@ -84,11 +85,10 @@ func Debugf(format string, args ...interface{}) {
 }
 
 // AddLocation data to search index.
-func AddLocation(provider string, geoData *GeoData) {
+func AddLocation(geoData *GeoData) {
 	hash := geohashEncodeMax(geoData.Latitude, geoData.Longitude)
 	geoData.GeoHash = hash
-	geoStore[provider] = append(geoStore[provider], geoData)
-	geoStore["default"] = geoStore[provider]
+	geoHashStore = append(geoHashStore, geoData)
 	geoIdStore = append(geoIdStore, geoData)
 	searchReady = false
 }
@@ -102,7 +102,7 @@ func GetLocation(id int) (geodata *GeoData, err error) {
 }
 
 // SearchLocations around latitude/longitude in bounded area (km) for known location points.
-func SearchLocations(provider string, latitude, longitude, bound float64) []*GeoData {
+func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 	if !searchReady {
 		initSearch()
 	}
@@ -115,25 +115,25 @@ func SearchLocations(provider string, latitude, longitude, bound float64) []*Geo
 	box := boundingBox(latitude, longitude, bound)
 
 	locationsFound := make([]*GeoData, 0)
-	geoStoreKeysLen := len(geoStore[provider])
+	geoStoreKeysLen := len(geoHashStore)
 	for nIdx := range neighbours {
 		neighboursUpperLimit := (neighbours[nIdx] + 1) << uint((MAX_STEPS-hashSteps)*2)
 		neighbours[nIdx] = neighbours[nIdx] << uint((MAX_STEPS-hashSteps)*2)
 		Debugf("Normalized Neighbours Hash: %v to %v", neighbours[nIdx], neighboursUpperLimit)
-		searchIdx := sort.Search(geoStoreKeysLen, func(i int) bool { return geoStore[provider][i].GeoHash >= neighbours[nIdx] })
+		searchIdx := sort.Search(geoStoreKeysLen, func(i int) bool { return geoHashStore[i].GeoHash >= neighbours[nIdx] })
 		if searchIdx < geoStoreKeysLen { // Not found would turn index=N
 			Debugf("found location?")
 			// found location
 			for i := searchIdx; i < geoStoreKeysLen; i++ {
-				if geoStore[provider][i].GeoHash < neighboursUpperLimit {
-					data := geoStore[provider][i]
+				if geoHashStore[i].GeoHash < neighboursUpperLimit {
+					data := geoHashStore[i]
 					Debugf("filtering by lat/long: %v %v", data.Latitude, data.Longitude)
 					Debugf("filtering by bounding box: %v %v %v %v", box[0], box[1], box[2], box[3])
 					// filter by strict bounding box
 					if ((data.Latitude >= box[0] && data.Latitude <= box[1]) || (data.Latitude <= box[0] && data.Latitude >= box[1])) &&
 					((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
 						locationsFound = append(locationsFound, data)
-						Debugf("Search found location in GeoStore: %v", geoStore[provider][searchIdx])
+						Debugf("Search found location in geoHashStore: %v", geoHashStore[searchIdx])
 					}
 				} else {
 					break
@@ -146,9 +146,7 @@ func SearchLocations(provider string, latitude, longitude, bound float64) []*Geo
 
 // Sort the list of geo so binary search can be used. Normally triggered by the first search.
 func initSearch() {
-	for provider := range geoStore {
-		sort.Sort(geoStore[provider])
-	}
+	sort.Sort(geoHashStore)
 	sort.Sort(geoIdStore)
 	searchReady = true // might cause race cond, but assume add doesn't happen often.
 }
