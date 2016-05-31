@@ -119,7 +119,9 @@ func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 	neighbours := getNeighbours(uint64(hash.bits), uint8(hashSteps))
 	box := boundingBox(latitude, longitude, bound)
 
-	var locationsFound []*GeoData
+	initialSize := 128
+	var locationsFound = make([]*GeoData, initialSize) // TODO initial size????
+	locFoundCount := 0
 	geoStoreKeysLen := len(geoHashStore)
 	for nIdx := range neighbours {
 		neighboursUpperLimit := (neighbours[nIdx] + 1) << uint((maxSteps-hashSteps)*2)
@@ -131,13 +133,19 @@ func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 			// found location
 			for i := searchIdx; i < geoStoreKeysLen; i++ {
 				if geoHashStore[i].GeoHash < neighboursUpperLimit {
+					//var data *GeoData
 					data := geoHashStore[i]
 					debugf("filtering by lat/long: %v %v", data.Latitude, data.Longitude)
 					debugf("filtering by bounding box: %v %v %v %v", box[0], box[1], box[2], box[3])
 					// filter by strict bounding box
 					if ((data.Latitude >= box[0] && data.Latitude <= box[1]) || (data.Latitude <= box[0] && data.Latitude >= box[1])) &&
 						((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
-						locationsFound = append(locationsFound, data)
+						if locFoundCount < initialSize {
+							locationsFound[locFoundCount] = data
+						} else {
+							locationsFound = append(locationsFound, data)
+						}
+						locFoundCount++
 						debugf("Search found location in geoHashStore: %v", geoHashStore[searchIdx])
 					}
 				} else {
@@ -146,7 +154,7 @@ func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 			}
 		}
 	}
-	return locationsFound
+	return locationsFound[:locFoundCount]
 }
 
 // InitSearch should be call after all locations are added. This sort the list of geo so binary search can be used.

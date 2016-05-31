@@ -81,26 +81,26 @@ Percentage of the requests served within a certain time (ms)
 
 #### (Normal) Total 443,969 locations in the system, search 1 km bound to return 42 records.
 
-Around 12,000 TPS for norminal conditions.
+Around 14,000 TPS for norminal conditions.
 
 ```
 Concurrency Level:      10
-Time taken for tests:   4.194 seconds
+Time taken for tests:   3.591 seconds
 Complete requests:      50000
 Failed requests:        0
-Total transferred:      364050000 bytes
-HTML transferred:       359200000 bytes
-Requests per second:    11923.10 [#/sec] (mean)
-Time per request:       0.839 [ms] (mean)
-Time per request:       0.084 [ms] (mean, across all concurrent requests)
-Transfer rate:          84777.40 [Kbytes/sec] received
+Total transferred:      324150000 bytes
+HTML transferred:       319300000 bytes
+Requests per second:    13923.68 [#/sec] (mean)
+Time per request:       0.718 [ms] (mean)
+Time per request:       0.072 [ms] (mean, across all concurrent requests)
+Transfer rate:          88151.60 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
-Connect:        0    0   0.0      0       2
-Processing:     0    1   1.6      1      80
-Waiting:        0    1   1.6      0      79
-Total:          0    1   1.6      1      80
+Connect:        0    0   0.0      0       3
+Processing:     0    1   1.4      1      79
+Waiting:        0    1   1.4      0      79
+Total:          0    1   1.4      1      79
 
 Percentage of the requests served within a certain time (ms)
   50%      1
@@ -109,47 +109,43 @@ Percentage of the requests served within a certain time (ms)
   80%      1
   90%      1
   95%      1
-  98%      2
-  99%      3
- 100%     80 (longest request)
-
+ 100%     79 (longest request)
 ```
 
 #### (Extreme) Total 443,969 locations in the system, search 10 km bound to return 490 records.
 
-Around 600 TPS for extremely large dataset and high HTTP overhead/traffic.
+Close to 1000 TPS for extremely large dataset and high HTTP overhead/traffic.
 (When we limit HTTP server to only send the first 250 records, the TPS jumps to around 900)
 
 ```
 Concurrency Level:      10
 Time taken for tests:   10.000 seconds
-Complete requests:      5936
+Complete requests:      9728
 Failed requests:        0
-Total transferred:      873496000 bytes
-HTML transferred:       872919917 bytes
-Requests per second:    593.59 [#/sec] (mean)
-Time per request:       16.847 [ms] (mean)
-Time per request:       1.685 [ms] (mean, across all concurrent requests)
-Transfer rate:          85301.50 [Kbytes/sec] received
+Total transferred:      375577600 bytes
+HTML transferred:       374633790 bytes
+Requests per second:    972.75 [#/sec] (mean)
+Time per request:       10.280 [ms] (mean)
+Time per request:       1.028 [ms] (mean, across all concurrent requests)
+Transfer rate:          36675.73 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
 Connect:        0    0   0.0      0       0
-Processing:     4   17  15.2     11     119
-Waiting:        2   11  13.0      6     110
-Total:          4   17  15.2     11     119
+Processing:     2   10  12.7      6     106
+Waiting:        2    9  12.0      5     105
+Total:          2   10  12.7      6     106
 
 Percentage of the requests served within a certain time (ms)
-  50%     11
-  66%     17
-  75%     19
-  80%     21
-  90%     27
-  95%     41
-  98%     79
-  99%     93
- 100%    119 (longest request)
-
+  50%      6
+  66%      9
+  75%     11
+  80%     12
+  90%     15
+  95%     23
+  98%     66
+  99%     81
+ 100%    106 (longest request)
 ```
 
 ## Limitations
