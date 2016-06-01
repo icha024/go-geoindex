@@ -66,7 +66,7 @@ func (s geoHashSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 // GeoIDSlice sorted by ID
 type geoIDSlice []*GeoData
 
-const maxSteps C.uint8_t = 26
+const maxSteps uint8 = 26
 
 var geoHashStore geoHashSlice
 var geoIDStore geoIDSlice
@@ -106,12 +106,30 @@ func GetLocation(id int) (geodata *GeoData, err error) {
 	return geoIDStore[id], nil
 }
 
+const mercatorMax float64 = 20037726.37
+
+func geohashEstimateStepsByRadius(rangeMeter float64) uint8 {
+	var step uint8 = 1
+	for i := 0; i < 26; i++ {
+		rangeMeter *= 2
+		step++
+		if rangeMeter < 0 || rangeMeter > mercatorMax {
+			break
+		}
+	}
+	step--
+	if step == 0 || step > 26 {
+		return 26
+	}
+	return step
+}
+
 // SearchLocations around latitude/longitude in bounded area (km) for known location points.
 func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 	if !searchReady {
 		InitSearch()
 	}
-	hashSteps := C.geohashEstimateStepsByRadius(C.double(bound * 1000))
+	hashSteps := geohashEstimateStepsByRadius(bound * 1000)
 	debugf("Hash step: %v, for radius: %v km", hashSteps, bound)
 
 	var hash C.GeoHashBits
@@ -191,7 +209,7 @@ func getNeighbours(hashBits uint64, steps uint8) []uint64 {
 // Encode a geo hash to MAX(26) steps
 func geohashEncodeMax(latitude, longitude float64) uint64 {
 	var hash C.GeoHashBits
-	C.geohashEncodeWGS84(C.double(latitude), C.double(longitude), maxSteps, &hash)
+	C.geohashEncodeWGS84(C.double(latitude), C.double(longitude), C.uint8_t(maxSteps), &hash)
 	return uint64(hash.bits)
 }
 
