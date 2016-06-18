@@ -110,16 +110,18 @@ func GetLocation(id int) (geodata *GeoData, err error) {
 const mercatorMax float64 = 20037726.37
 
 func geohashEstimateStepsByRadius(rangeMeter float64) uint8 {
+	if rangeMeter <= 0 {
+		return 1
+	}
 	var step uint8 = 1
 	for i := 0; i < 26; i++ {
 		rangeMeter *= 2
-		step++
-		if rangeMeter < 0 || rangeMeter > mercatorMax {
+		if rangeMeter > mercatorMax {
 			break
 		}
+		step++
 	}
-	step--
-	if step == 0 || step > 26 {
+	if step > 26 {
 		return 26
 	}
 	return step
@@ -233,10 +235,10 @@ func boundingBox(latitude, longitude, boundKm float64) []float64 {
 	minLongitude := longitude - longDiff
 	maxLongitude := longitude + longDiff
 
-	debugf("min lat: %v", minLatitude)
-	debugf("max lat: %v", maxLatitude)
-	debugf("min long: %v", minLongitude)
-	debugf("max long: %v", maxLongitude)
+	// debugf("min lat: %v", minLatitude)
+	// debugf("max lat: %v", maxLatitude)
+	// debugf("min long: %v", minLongitude)
+	// debugf("max long: %v", maxLongitude)
 
 	return []float64{
 		minLatitude,
