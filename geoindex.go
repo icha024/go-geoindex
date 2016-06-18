@@ -138,34 +138,40 @@ func SearchLocations(latitude, longitude, bound float64) []*GeoData {
 	neighbours := getNeighbours(uint64(hash.bits), uint8(hashSteps))
 	box := boundingBox(latitude, longitude, bound)
 
-	initialSize := 128
-	var locationsFound = make([]*GeoData, initialSize) // TODO initial size????
+	initialSize := 128 // Initial array size to avoid time waste re-sizing array
+	var locationsFound = make([]*GeoData, initialSize)
 	locFoundCount := 0
 	geoStoreKeysLen := len(geoHashStore)
 	for nIdx := range neighbours {
 		neighboursUpperLimit := (neighbours[nIdx] + 1) << uint((maxSteps-hashSteps)*2)
 		neighbours[nIdx] = neighbours[nIdx] << uint((maxSteps-hashSteps)*2)
-		debugf("Normalized Neighbours Hash: %v to %v", neighbours[nIdx], neighboursUpperLimit)
+		// debugf("Normalized Neighbours Hash: %v to %v", neighbours[nIdx], neighboursUpperLimit)
 		searchIdx := sort.Search(geoStoreKeysLen, func(i int) bool { return geoHashStore[i].GeoHash >= neighbours[nIdx] })
 		if searchIdx < geoStoreKeysLen { // Not found would turn index=N
-			debugf("found location?")
+			// debugf("found location?")
 			// found location
 			for i := searchIdx; i < geoStoreKeysLen; i++ {
-				if geoHashStore[i].GeoHash < neighboursUpperLimit {
+				data := geoHashStore[i]
+				if data.GeoHash < neighboursUpperLimit {
 					//var data *GeoData
-					data := geoHashStore[i]
-					debugf("filtering by lat/long: %v %v", data.Latitude, data.Longitude)
-					debugf("filtering by bounding box: %v %v %v %v", box[0], box[1], box[2], box[3])
+					// debugf("filtering by lat/long: %v %v", data.Latitude, data.Longitude)
+					// debugf("filtering by bounding box: %v %v %v %v", box[0], box[1], box[2], box[3])
 					// filter by strict bounding box
-					if ((data.Latitude >= box[0] && data.Latitude <= box[1]) || (data.Latitude <= box[0] && data.Latitude >= box[1])) &&
-						((data.Longitude >= box[2] && data.Longitude <= box[3]) || (data.Longitude <= box[2] && data.Longitude >= box[3])) {
+					box0 := box[0]
+					box1 := box[1]
+					box2 := box[2]
+					box3 := box[3]
+					lat := data.Latitude
+					lng := data.Longitude
+					if ((lat >= box0 && lat <= box1) || (lat <= box0 && lat >= box1)) &&
+						((lng >= box2 && lng <= box3) || (lng <= box2 && lng >= box3)) {
 						if locFoundCount < initialSize {
 							locationsFound[locFoundCount] = data
 						} else {
 							locationsFound = append(locationsFound, data)
 						}
 						locFoundCount++
-						debugf("Search found location in geoHashStore: %v", geoHashStore[searchIdx])
+						// debugf("Search found location in geoHashStore: %v", geoHashStore[searchIdx])
 					}
 				} else {
 					break

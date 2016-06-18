@@ -64,8 +64,8 @@ func TestAddAndSearch(t *testing.T) {
 
 func BenchmarkAdd(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		lng := rand.Float64() * 10.0
-		lat := rand.Float64() * 10.0
+		lng := 5.0 + rand.Float64()*5.0
+		lat := 5.0 + rand.Float64()*5.0
 		prop := []string{"property1", "property2"}
 		//locationID, err :=
 		AddLocation(&GeoData{Latitude: lat, Longitude: lng, Properties: &prop})
@@ -74,8 +74,8 @@ func BenchmarkAdd(b *testing.B) {
 
 func BenchmarkSearch(b *testing.B) {
 	for n := 0; n < 500000; n++ {
-		lng := rand.Float64() * 10.0
-		lat := rand.Float64() * 10.0
+		lng := 5.0 + rand.Float64()*5.0
+		lat := 5.0 + rand.Float64()*5.0
 		prop := []string{"property1", "property2"}
 		//locationID, err :=
 		AddLocation(&GeoData{Latitude: lat, Longitude: lng, Properties: &prop})
@@ -83,8 +83,8 @@ func BenchmarkSearch(b *testing.B) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		lat := rand.Float64() * 10.0
-		lng := rand.Float64() * 10.0
+		lat := 5.0 + rand.Float64()*5.0
+		lng := 5.0 + rand.Float64()*5.0
 		bound := 5.0 // KM
 		SearchLocations(lat, lng, bound)
 	}
