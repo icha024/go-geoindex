@@ -28,13 +28,13 @@ locationID, err := geoindex.AddLocation(&GeoData{Latitude: latitude, Longitude: 
 geoindex.InitSearch()
 ```
 
-###Search locations:
+### Search locations:
 Search at latitude/longitude (-32.1, 120.3) within a 12 km bound.
 ```go
 locations := geoindex.SearchBound(-32.2, 120.3, 12)
 ```
 
-###Get location details:
+### Get location details:
 Get details by ID.
 ```go
 locationID := 12345 // Either from add operation, or from search results.
@@ -42,7 +42,9 @@ geoindex.GetLocation(locationID)
 ```
 
 ## Performance
-Tested with a simple local HTTP server (no cache) in plain Go lang 1.6 and Apache Bench. Using a HTTP GET search operation that returns data in GeoJson format, on my 6x vCore i7 CPU (3.2Ghz Haswell) Ubuntu 16.04 desktop.
+*This is only meant to be an approximate tests for my use-case - embedding geo search function into a webapp.*
+
+Tested with a simple local HTTP server (no cache) in plain Go lang 1.6 and Apache Bench. Using a HTTP GET search operation that returns data in GeoJson format, on Ubuntu 16.04 with i7 (4790s) CPU (capped at 3.2GHz and 6vcore).
 
 #### (Basic) Total 30 locations in the system, search 10 km bound to return 2 records.
 
