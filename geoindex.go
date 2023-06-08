@@ -190,6 +190,12 @@ func InitSearch() {
 	searchReady = true // might cause race cond if data are added and search at the same time
 }
 
+// Reset resets internal stores
+func Reset() {
+	geoHashStore = nil
+	geoIDStore = nil
+}
+
 func getNeighbours(hashBits uint64, steps uint8) []uint64 {
 	var neighbours C.GeoHashNeighbors
 	var hash C.GeoHashBits
